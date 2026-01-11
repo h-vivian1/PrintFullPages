@@ -123,8 +123,18 @@ app.post('/print', async (req, res) => {
                     });
                 }
 
+                // Serve static files from downloads directory
+                app.use('/downloads', express.static(DOWNLOADS_DIR));
+
+                // ... inside the POST route ...
+
+                const protocol = req.protocol;
+                const host = req.get('host');
+                const publicUrl = `${protocol}://${host}/downloads/${filename}`;
+
                 result.status = 'success';
                 result.path = filepath;
+                result.downloadUrl = publicUrl;
                 console.log(`Success: ${filepath}`);
 
             } catch (err) {

@@ -7,6 +7,7 @@ interface Log {
     url: string;
     status: 'success' | 'error';
     path?: string;
+    downloadUrl?: string;
     message?: string;
 }
 
@@ -101,11 +102,18 @@ function App() {
                             {logs.map((log, index) => (
                                 <div key={index} className={`log-item ${log.status}`}>
                                     {log.status === 'success' ? <CheckCircle size={14} /> : <XCircle size={14} />}
-                                    <span className="log-url">{log.url}</span>
-                                    {log.status === 'success' && format === 'pdf' ? <FileText size={14} /> : (log.status === 'success' ? <FileImage size={14} /> : null)}
-                                    <span className="log-msg">
-                                        {log.status === 'success' ? 'Salvo com sucesso' : `Erro: ${log.message}`}
-                                    </span>
+                                    <span className="log-url" title={log.url}>{log.url}</span>
+
+                                    {log.status === 'success' && (
+                                        <a href={log.downloadUrl} target="_blank" rel="noopener noreferrer" className="download-link" title="Baixar Arquivo">
+                                            {format === 'pdf' ? <FileText size={16} /> : <FileImage size={16} />}
+                                            <span className="download-text">Abrir</span>
+                                        </a>
+                                    )}
+
+                                    {log.status === 'error' && (
+                                        <span className="log-msg">Erro: {log.message}</span>
+                                    )}
                                 </div>
                             ))}
                         </div>
