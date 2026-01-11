@@ -28,7 +28,8 @@ function App() {
         try {
             // In a real world scenario heavily loaded with links, we might want to stream this or handle chunks.
             // For this vibe code MVP, sending all at once.
-            const response = await axios.post('http://localhost:3001/print', {
+            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+            const response = await axios.post(`${apiUrl}/print`, {
                 links,
                 format
             });

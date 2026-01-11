@@ -35,7 +35,12 @@ app.post('/print', async (req, res) => {
     try {
         browser = await puppeteer.launch({
             headless: 'new',
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu' // Windows often benefits from this in headless
+            ]
         });
 
         for (const link of links) {
@@ -44,11 +49,15 @@ app.post('/print', async (req, res) => {
 
             try {
                 page = await browser.newPage();
+                // User Agent to bypass Cloudflare 520 / 403
+                await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+
                 // Set viewport for better full page capture resolution
                 await page.setViewport({ width: 1280, height: 800 });
-                
+
                 console.log(`Navigating to: ${link}`);
-                await page.goto(link, { waitUntil: 'networkidle0', timeout: 30000 });
+                // Optimization: networkidle2 is faster (allows 2 connections). Standard 30s timeout might be too short for heavy sites.
+                await page.goto(link, { waitUntil: 'networkidle2', timeout: 60000 });
 
                 const sanitizeFilename = (url) => {
                     return url.replace(/[^a-z0-9]/gi, '_').toLowerCase();
