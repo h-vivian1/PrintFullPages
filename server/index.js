@@ -101,13 +101,27 @@ app.post('/print', async (req, res) => {
                 }
                 // -------------------------------------------------------------
 
+                // Logic: specific folder for current day (DD_MM)
+                const now = new Date();
+                const day = String(now.getDate()).padStart(2, '0');
+                const month = String(now.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+                const dateFolder = `${day}_${month}`;
+
+                const specificDownloadDir = path.join(DOWNLOADS_DIR, dateFolder);
+                if (!fs.existsSync(specificDownloadDir)) {
+                    fs.mkdirSync(specificDownloadDir, { recursive: true });
+                }
+
                 const sanitizeFilename = (url) => {
-                    return url.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                    // Remove protocol and www
+                    let clean = url.replace(/^https?:\/\//, '').replace(/^www\./, '');
+                    // Replace special chars with _
+                    return clean.replace(/[^a-z0-9]/gi, '_').toLowerCase();
                 };
 
                 const timestamp = Date.now();
                 const filename = `${sanitizeFilename(link)}_${timestamp}.${selectedFormat}`;
-                const filepath = path.join(DOWNLOADS_DIR, filename);
+                const filepath = path.join(specificDownloadDir, filename);
 
                 if (selectedFormat === 'pdf') {
                     await page.pdf({
@@ -130,7 +144,7 @@ app.post('/print', async (req, res) => {
 
                 const protocol = req.protocol;
                 const host = req.get('host');
-                const publicUrl = `${protocol}://${host}/downloads/${filename}`;
+                const publicUrl = `${protocol}://${host}/downloads/${dateFolder}/${filename}`;
 
                 result.status = 'success';
                 result.path = filepath;
