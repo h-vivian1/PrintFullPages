@@ -59,6 +59,50 @@ app.post('/print', async (req, res) => {
                 // Optimization: networkidle2 is faster (allows 2 connections). Standard 30s timeout might be too short for heavy sites.
                 await page.goto(link, { waitUntil: 'networkidle2', timeout: 60000 });
 
+                // --- POPUP KILLER & CLEANER ---
+                try {
+                    console.log('Cleaning page (popups, cookies, age gates)...');
+                    await page.evaluate(() => {
+                        // 1. Helper to finding buttons by text
+                        const findButtonByText = (texts) => {
+                            const buttons = Array.from(document.querySelectorAll('button, a, input[type="button"], div[role="button"]'));
+                            return buttons.find(b => texts.some(t => b.innerText?.toLowerCase().includes(t)));
+                        };
+
+                        // 2. Try to click "I am 18", "Enter", "Agree", "Accept"
+                        const positiveWords = ['18+', 'over 18', 'i am 18', 'enter', 'entrar', 'aceitar', 'accept', 'agree', 'concordo', 'sim', 'yes'];
+                        const gateButton = findButtonByText(positiveWords);
+                        if (gateButton) {
+                            console.log('Clicking gate button:', gateButton.innerText);
+                            gateButton.click();
+                        }
+
+                        // 3. Bruteforce Remove Common Annoyances via CSS
+                        const style = document.createElement('style');
+                        style.innerHTML = `
+                            #onetrust-banner-sdk, .onetrust-banner-sdk, 
+                            #cookie-banner, .cookie-banner,
+                            #gdpr-banner, .gdpr-banner,
+                            .modal-backdrop, .modal-overlay,
+                            [class*="popup"], [class*="overlay"], [class*="modal"],
+                            [id*="popup"], [id*="overlay"], [id*="modal"],
+                            .ads, .ad-banner, .advertisement,
+                            iframe[src*="googleads"], iframe[src*="doubleclick"]
+                            { display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; }
+                            
+                            /* Force scroll to be enabled in case a modal locked it */
+                            body, html { overflow: auto !important; position: static !important; }
+                        `;
+                        document.head.appendChild(style);
+                    });
+
+                    // Small wait for any clicked actions to resolve or animations to clear
+                    await new Promise(r => setTimeout(r, 2000));
+                } catch (e) {
+                    console.log('Cleanup minor error:', e.message);
+                }
+                // -----------------------------
+
                 const sanitizeFilename = (url) => {
                     return url.replace(/[^a-z0-9]/gi, '_').toLowerCase();
                 };
