@@ -41,6 +41,25 @@ O projeto é dividido em duas partes principais:
 
 Pré-requisitos: Tenha o [Node.js](https://nodejs.org/) instalado.
 
+### ⚡ Modo Rápido (Recomendado)
+
+O projeto inclui um script de inicialização automática para Windows.
+
+1.  Na raiz do projeto, clique duas vezes no arquivo:
+    `start_app.bat`
+    *(Ou execute `.\start_app.bat` no terminal)*
+
+Isso abrirá automaticamente:
+- O Servidor Backend (Porta 3001)
+- O Cliente Frontend (Porta 5173)
+- E seu navegador padrão pronto para uso.
+
+---
+
+### 🐢 Modo Manual (Opcional)
+
+Caso prefira rodar terminal por terminal:
+
 ### Passo 1: Configurar e Rodar o Backend (Servidor)
 
 O backend é responsável por processar as imagens e salvar os arquivos.
@@ -49,13 +68,13 @@ O backend é responsável por processar as imagens e salvar os arquivos.
     ```bash
     cd server
     ```
-2.  Instale as dependências (incluindo o Puppeteer):
+2.  Instale as dependências (incluindo o Puppeteer) na primeira vez:
     ```bash
     npm install
     ```
 3.  Inicie a API:
     ```bash
-    node index.js
+    npm run dev
     ```
     > 🟢 O servidor rodará em: `http://localhost:3001`
 
@@ -65,7 +84,7 @@ O backend é responsável por processar as imagens e salvar os arquivos.
     ```bash
     cd client
     ```
-2.  Instale as dependências:
+2.  Instale as dependências na primeira vez:
     ```bash
     npm install
     ```

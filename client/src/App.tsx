@@ -17,33 +17,71 @@ function App() {
     const [loading, setLoading] = useState(false);
     const [logs, setLogs] = useState<Log[]>([]);
 
+    const [progress, setProgress] = useState<{ percent: number, estimatedTime: number } | null>(null);
+
     const handleProcess = async () => {
         if (!text.trim()) return;
 
         setLoading(true);
-        setLogs([]); // Clear previous logs
+        setLogs([]);
+        setProgress({ percent: 0, estimatedTime: 0 });
 
-        // Split text by newlines and filter empty strings
         const links = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
         try {
-            // In a real world scenario heavily loaded with links, we might want to stream this or handle chunks.
-            // For this vibe code MVP, sending all at once.
-            const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-            const response = await axios.post(`${apiUrl}/print`, {
-                links,
-                format
+            const response = await fetch(`${apiUrl}/print`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ links, format })
             });
 
-            if (response.data && response.data.results) {
-                setLogs(response.data.results);
+            if (!response.body) throw new Error("ReadableStream not supported in this browser.");
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
+            let buffer = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+
+                // Processa todas as linhas completas
+                buffer = lines.pop() || "";
+
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    try {
+                        const data = JSON.parse(line);
+
+                        // Atualiza logs se houver resultado
+                        if (data.result) {
+                            setLogs(prev => [...prev, data.result]);
+                        }
+
+                        // Atualiza barra de progresso
+                        if (typeof data.percent === 'number') {
+                            setProgress({
+                                percent: data.percent,
+                                estimatedTime: data.estimatedTime || 0
+                            });
+                        }
+
+                    } catch (err) {
+                        console.warn("JSON Parse Error in chunk:", line);
+                    }
+                }
             }
+
         } catch (error: any) {
             console.error("Error processing links", error);
-            // Add a generic error log if the request fails completely
-            setLogs([{ url: 'System', status: 'error', message: error.message || 'Falha na conexão com o servidor' }]);
+            setLogs(prev => [...prev, { url: 'System', status: 'error', message: error.message || 'Falha na conexão' }]);
         } finally {
             setLoading(false);
+            setProgress(null);
         }
     };
 
@@ -51,7 +89,7 @@ function App() {
         <div className="app-container">
             <div className="glass-card">
                 <header>
-                    <h1>Web Capture <span className="highlight">Vibe</span></h1>
+                    <h1>Print<span className="highlight" style={{ color: '#00d2ff', textShadow: '0 0 10px #00d2ff' }}>Full</span>Page</h1>
                 </header>
 
                 <div className="controls">
@@ -94,6 +132,27 @@ function App() {
                         </button>
                     </div>
                 </div>
+
+                {/* AREA DE PROGRESSO */}
+                {loading && progress && (
+                    <div className="progress-area" style={{ marginTop: '20px', padding: '0 20px' }}>
+                        <div className="progress-labels" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '14px', color: '#ccc' }}>
+                            <span>Progresso: {progress.percent}%</span>
+                            <span>Tempo Restante: ~{progress.estimatedTime}s</span>
+                        </div>
+                        <div className="progress-track" style={{ height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+                            <div
+                                className="progress-fill"
+                                style={{
+                                    height: '100%',
+                                    width: `${progress.percent}%`,
+                                    background: '#00d2ff',
+                                    transition: 'width 0.5s ease'
+                                }}
+                            />
+                        </div>
+                    </div>
+                )}
 
                 {logs.length > 0 && (
                     <div className="logs-container">
