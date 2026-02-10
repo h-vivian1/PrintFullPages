@@ -36,7 +36,7 @@ export class PuppeteerScraper {
     /**
      * Navega, limpa e captura uma única URL
      */
-    async capturePage(url: string, outputPath: string, format: 'png' | 'webp' | 'pdf'): Promise<void> {
+    async capturePage(url: string, outputPath: string, format: 'png' | 'webp' | 'pdf', slowScroll: boolean = false): Promise<void> {
         if (!this.browser) throw new Error("Browser not initialized. Call init() first.");
 
         let page: Page | null = null;
@@ -55,7 +55,13 @@ export class PuppeteerScraper {
             // 3. Executa o "Faxineiro Gentil" (Cookies e Popups)
             await this.applyGentleCleaner(page, url);
 
-            // 4. Captura
+            // 4. Rolagem Suave (se ativado) - Carrega imagens lazy-load
+            if (slowScroll) {
+                console.log(`[Scraper] 🐢 Rolagem suave ativada - Carregando imagens...`);
+                await this.smoothScroll(page);
+            }
+
+            // 5. Captura
             if (format === 'pdf') {
                 await page.pdf({
                     path: outputPath,
@@ -115,6 +121,38 @@ export class PuppeteerScraper {
         } catch (e) {
             // Falhas no cleaner não devem parar o scraping, apenas logamos
             console.warn(`[Scraper Warning] Gentle Cleaner falhou levemente:`, e);
+        }
+    }
+
+    /**
+     * Rola a página suavemente para carregar imagens lazy-load
+     */
+    private async smoothScroll(page: Page): Promise<void> {
+        try {
+            await page.evaluate(async () => {
+                await new Promise<void>((resolve) => {
+                    let totalHeight = 0;
+                    const distance = 100; // Pixels por scroll
+                    const delay = 200; // Delay entre scrolls (ms)
+
+                    const timer = setInterval(() => {
+                        const scrollHeight = document.body.scrollHeight;
+                        window.scrollBy(0, distance);
+                        totalHeight += distance;
+
+                        if (totalHeight >= scrollHeight) {
+                            clearInterval(timer);
+                            // Volta ao topo
+                            window.scrollTo(0, 0);
+                            // Aguarda um pouco para garantir carregamento
+                            setTimeout(resolve, 1000);
+                        }
+                    }, delay);
+                });
+            });
+            console.log(`[Scraper] ✅ Rolagem suave concluída`);
+        } catch (error) {
+            console.warn(`[Scraper Warning] Erro na rolagem suave:`, error);
         }
     }
 }

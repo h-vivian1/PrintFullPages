@@ -13,8 +13,8 @@ app.use(cors()); // Permite que seu frontend React acesse a API
 app.use(express.json());
 
 // Configuração de Arquivos Estáticos (Downloads)
-// Sai de /src para a raiz /server/downloads
-const downloadsDir = path.join(__dirname, '../../downloads');
+// Sai de /dist para /server/downloads (um nível acima)
+const downloadsDir = path.join(__dirname, '../downloads');
 app.use('/downloads', express.static(downloadsDir));
 
 // Rotas

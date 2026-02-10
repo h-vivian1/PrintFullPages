@@ -1,6 +1,7 @@
 import path from 'path';
-import fs from 'fs';
+import fs from 'fs/promises';
 import { PuppeteerScraper } from '../providers/scraper/PuppeteerScraper';
+import { PDFDocument } from 'pdf-lib';
 import { getDateFolder, sanitizeFilename } from '../utils/formatters';
 
 export interface ScrapeResult {
@@ -31,16 +32,19 @@ export class ScraperService {
     private downloadsRoot: string;
 
     constructor() {
+        // De /dist/services para /server/downloads (dois níveis acima)
         this.downloadsRoot = path.resolve(__dirname, '../../downloads');
     }
 
-    // Agora aceita o callback onProgress
-    async execute(links: string[], format: 'png' | 'webp' | 'pdf', onProgress?: ProgressCallback): Promise<ScrapeResult[]> {
+    // Agora aceita o callback onProgress e slowScroll
+    async execute(links: string[], format: 'png' | 'webp' | 'pdf', slowScroll: boolean = false, onProgress?: ProgressCallback): Promise<ScrapeResult[]> {
         const dateFolder = getDateFolder();
         const targetDir = path.join(this.downloadsRoot, dateFolder);
 
-        if (!fs.existsSync(targetDir)) {
-            fs.mkdirSync(targetDir, { recursive: true });
+        try {
+            await fs.access(targetDir);
+        } catch {
+            await fs.mkdir(targetDir, { recursive: true });
         }
 
         const scraper = new PuppeteerScraper();
@@ -72,7 +76,7 @@ export class ScraperService {
                 const result: ScrapeResult = { url: link, status: 'error' };
 
                 try {
-                    await scraper.capturePage(link, filePath, format);
+                    await scraper.capturePage(link, filePath, format, slowScroll);
                     result.status = 'success';
                     result.filename = filename;
                     result.localPath = filePath;
@@ -113,6 +117,61 @@ export class ScraperService {
             await scraper.close();
         }
 
+        // Se for PDF e tiver mais de 1 resultado bem-sucedido, mesclar
+        if (format === 'pdf' && results.filter(r => r.status === 'success').length > 1) {
+            console.log('[Service] 📄 Mesclando PDFs...');
+            const timestamp = Date.now();
+            const mergedFilename = `merged_${timestamp}.pdf`;
+            const mergedPath = path.join(targetDir, mergedFilename);
+
+            const successfulResults = results.filter(r => r.status === 'success' && r.localPath);
+            const pdfPaths = successfulResults.map(r => r.localPath!);
+
+            try {
+                await this.mergePDFs(pdfPaths, mergedPath);
+
+                // Deletar PDFs individuais
+                for (const pdfPath of pdfPaths) {
+                    await fs.unlink(pdfPath);
+                }
+
+                console.log(`[Service] ✅ PDFs mesclados: ${mergedFilename}`);
+
+                // Retornar apenas o PDF mesclado
+                return [{
+                    url: `${successfulResults.length} páginas mescladas`,
+                    status: 'success',
+                    filename: mergedFilename,
+                    localPath: mergedPath,
+                    publicPath: `/downloads/${dateFolder}/${mergedFilename}`
+                }];
+            } catch (mergeError) {
+                console.error('[Service] ❌ Erro ao mesclar PDFs:', mergeError);
+                // Se falhar, retorna os PDFs individuais
+            }
+        }
+
         return results;
+    }
+
+    /**
+     * Mescla múltiplos PDFs em um único arquivo
+     */
+    private async mergePDFs(pdfPaths: string[], outputPath: string): Promise<void> {
+        const mergedPdf = await PDFDocument.create();
+
+        for (const pdfPath of pdfPaths) {
+            try {
+                const pdfBytes = await fs.readFile(pdfPath);
+                const pdf = await PDFDocument.load(pdfBytes);
+                const copiedPages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+                copiedPages.forEach((page) => mergedPdf.addPage(page));
+            } catch (error) {
+                console.warn(`[Service] ⚠️  Erro ao processar PDF ${pdfPath}:`, error);
+            }
+        }
+
+        const mergedPdfBytes = await mergedPdf.save();
+        await fs.writeFile(outputPath, mergedPdfBytes);
     }
 }
