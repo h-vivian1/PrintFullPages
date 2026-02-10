@@ -1,4 +1,4 @@
-# 📸 PrintFullPage - Capturador Web Fullstack
+# 📸 MultiPage Capture - Capturador Web Fullstack
 
 > Uma aplicação moderna para capturar screenshots de páginas inteiras com precisão e estilo.
 
@@ -8,9 +8,9 @@
 
 ## 🎯 O que ele faz?
 
-O **PrintFullPage** resolve o problema de tirar "prints" de sites longos. Ele utiliza automação de navegador para rolar a página inteira e capturar cada pixel, desde o cabeçalho até o rodapé, salvando o resultado localmente em alta resolução.
+O **MultiPage Capture** resolve o problema de tirar "prints" de sites longos. Ele utiliza automação de navegador para rolar a página inteira e capturar cada pixel, desde o cabeçalho até o rodapé, salvando o resultado localmente em alta resolução.
 
-Tudo isso envolto em uma interface **"Vibe Tech" (Cyberpunk)** com fundos animados e efeitos de *glassmorphism*.
+Tudo isso envolto em uma interface **Cyberpunk**.
 
 ## 🚀 Funcionalidades Principais
 
@@ -84,7 +84,7 @@ O projeto é dividido em duas partes principais:
 
 ---
 
-## 💻 Como Rodar o Projeto
+## Como Rodar o Projeto
 
 Pré-requisitos: Tenha o [Node.js](https://nodejs.org/) instalado.
 
@@ -103,7 +103,7 @@ Isso abrirá automaticamente:
 
 ---
 
-### 🐢 Modo Manual (Opcional)
+### Modo Manual (Opcional)
 
 Caso prefira rodar terminal por terminal:
 
