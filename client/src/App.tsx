@@ -169,7 +169,7 @@ function App() {
                                         🐢 <strong style={{ color: '#00d2ff' }}>Rolagem Suave</strong>
                                     </span>
                                     <span
-                                        title="Ativa scroll gradual para carregar imagens lazy-load. Recomendado para sites com muitas imagens (G1, portais de notícias, e-commerce). Torna a captura mais lenta, mas garante que todas as imagens sejam carregadas."
+                                        title="Ativa scroll gradual para carregar imagens lazy-load. Recomendado para sites com muitas imagens (portais de notícias, e-commerce). Torna a captura mais lenta, mas garante que todas as imagens sejam carregadas."
                                         style={{
                                             display: 'inline-flex',
                                             alignItems: 'center',
